@@ -11,11 +11,17 @@ Requirements and such.
 
 ---
 
+### Goals
+
+- Minimal barrier to entry
+- Language agnostic plugins
+- Live hackable
+
+---
+
 ### Features
 
-
-- Plugins are language agnostic
-- Messages passed through stdin/stdout
+What it currently does.
 
 ---
 
