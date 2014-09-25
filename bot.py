@@ -24,8 +24,11 @@ def parsemsg(line):
     return {'prefix':prefix, 'command':command, 'args':args, 'raw':line}
 
 class CodePlugin:
+    """ Keep a singleton select loop that runs on a map of fileno->CodePlugins
+    """
     def __init__(self, handler, code):
         print("New code plugin:", code)
+
         pass
     def handleMessage(self, obj):
         pass
@@ -40,6 +43,7 @@ class DebugPlugin:
         """
         self.handler = handler
         self.seen_mode_line = False
+
     def handleMessage(self, obj):
         """ obj - irc message as dict """
         if obj.get("command","") == "MODE":
@@ -52,15 +56,16 @@ class DebugPlugin:
 
     def end(self):
         return
-
 class PluginLoader:
     def __init__(self, handler):
         self.handler = handler
 
     def handleMessage(self, obj):
+        print("---", obj.get('command',''))
+
         if obj.get('command','') == 'PRIVMSG':
             line = obj['args'][1].split(" ", 3)
-            if line[0] == "!plugin" && len(line) >= 3: # ['!plugin', '[un]load', 'name'] + optional code
+            if line[0] == "!plugin" and len(line) >= 3: # ['!plugin', '[un]load', 'name'] + optional code
                 name = line[2]
                 if line[1] == "load":
                     code = line[3]
@@ -113,7 +118,11 @@ class PluginManager:
             name = obj["name"]
             if method == "load":
                 self.loadPlugin(name,
-                        CodePlugin(self.handlePluginMessage, obj["code"]))
+                        CodePlugin(self.handlePluginMessage, (
+                            "#!/usr/bin/env python\n",
+                            "import json\n",
+                            "line=json.loads(input())\n",
+                            obj["code"].replace('\\n','\n'))))
             elif method == "unload":
                 self.unloadPlugin(name)
         else:
@@ -167,6 +176,8 @@ def start():
         lines = read.split("\r\n")
         lines, read = lines[:-1],lines[-1]
         for line in lines:
+            import subprocess
+            subprocess.Popen("clear").wait()
             print(">> {}".format(line))
             line = parsemsg(line)
 
