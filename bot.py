@@ -254,13 +254,13 @@ def start():
         log("END")
         pm.end()
 
-
-try:
-    start()
-except:
-    print("Exceptional exit:")
-    raise
-print("Regular Exit")
+if __name__ == "__main__":
+    try:
+        start()
+    except:
+        print("Exceptional exit:")
+        raise
+    print("Regular Exit")
 
 
 
