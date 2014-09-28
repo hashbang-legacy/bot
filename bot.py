@@ -47,10 +47,6 @@ class CodePlugin:
         self.running = False
         self.start()
 
-    def restart(self):
-        self.end()
-        self.start()
-
     def start(self):
         self.proc = subprocess.Popen(["/usr/bin/env", "python", "-u",
             self.path],
@@ -66,10 +62,14 @@ class CodePlugin:
                 line = self.proc.stdout.readline().decode('utf-8')
                 log("{} -> {}", self.name, line)
                 if not line:
-                    log("Plugin {} returned an empty line, quitting. (restart={})", self.name, self.running)
-                    if self.running:
-                        threading.Thread(target=self.restart).start()
-                    return
+                    log("Plugin {} returned an empty line, polling", self.name)
+                        # if running is true, then it was the script that quit
+                        # if running is false, then we've called 'end'
+                        #   and then the terminate caused the process exit
+                    self.proc.poll()
+                    if self.proc.returncode is not None:
+                        log("Plugin {} died. Exit: {}", self.name, self.proc.returncode)
+                        self.end()
                 else:
                     line = line.strip()
                     try:
@@ -85,6 +85,10 @@ class CodePlugin:
 
     def handleMessage(self, obj):
         try:
+            self.proc.poll()
+            if self.proc.returncode is not None:
+                self.start()
+
             #log("Sending {} to {}", obj, self.name)
             log("Sending to {}", self.name)
             self.proc.stdin.write(json.dumps(obj).encode('utf-8') + b"\n")
@@ -97,11 +101,13 @@ class CodePlugin:
         self.running = False
         try:
             self.proc.terminate()
+            self.proc.wait()
         except:pass
-        log("Waiting on end of {}", self.name)
-        self.proc.wait()
-        self.thread.join()
-        log("Waiting finished  {}", self.name)
+
+        if threading.currentThread() != self.thread:
+            self.thread.join()
+
+        log("{} Ended", self.name)
 
 class DebugPlugin:
     def __init__(self, handler):
