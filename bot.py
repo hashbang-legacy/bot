@@ -39,9 +39,11 @@ class CodePlugin:
         self.handler = handler
         self.name = name
         self.path = "/dev/shm/" + name
+        log("Opening {}", self.path)
         f = open(self.path, "w")
         f.write(code)
         f.close()
+        log("Closing {}", self.path)
         self.running = False
         self.start()
 
@@ -50,7 +52,8 @@ class CodePlugin:
         self.start()
 
     def start(self):
-        self.proc = subprocess.Popen(["/usr/bin/env", "python", "-u", self.path],
+        self.proc = subprocess.Popen(["/usr/bin/env", "python", "-u",
+            self.path],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -90,6 +93,7 @@ class CodePlugin:
             self.restart()
 
     def end(self):
+        log("{} Ending", self.name)
         self.running = False
         try:
             self.proc.terminate()
@@ -129,7 +133,8 @@ class PluginLoader:
     def handleMessage(self, obj):
         if obj.get('command','') == 'PRIVMSG':
             line = obj['args'][1].split(" ", 3)
-            if line[0] == "!plugin" and len(line) >= 3: # ['!plugin', '[un]load', 'name'] + optional code
+            if line[0] == "!plugin" and len(line) >= 3:
+                # ['!plugin', '[un]load', 'name'] + optional code
                 name = line[2]
                 if line[1] == "load":
                     code = line[3]
@@ -154,9 +159,9 @@ class PluginManager:
 
     def unloadPlugin(self, name):
         if name in self.plugins:
+            log("PluginManager End of {}", name)
             plugin = self.plugins[name]
             plugin.end()
-            log("PluginManager End of {}", name)
             del self.plugins[name]
 
     def loadPlugin(self, name, plugin):
@@ -180,7 +185,8 @@ class PluginManager:
             method = obj["method"]
             name = obj["name"]
             if method == "load":
-                log("handlePluginMessage Code: {}", obj['code'].replace("\\n", "\n"))
+                log("handlePluginMessage Code: {}",
+                        obj['code'].replace("\\n", "\n"))
                 self.loadPlugin(name,
                         CodePlugin(self.handlePluginMessage, name, (
                             "#!/usr/bin/env python\n" +
