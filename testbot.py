@@ -8,7 +8,6 @@ class TestPluginManager(unittest.TestCase):
         self.pm = PluginManager(self.handler)
 
     def test_end_calls_plugin_end(self):
-        return
         plugin = Mock()
         plugin2 = Mock()
         self.pm.loadPlugin("p1", plugin)
@@ -27,7 +26,6 @@ class TestPluginManager(unittest.TestCase):
         plugin.end.assert_called_with()
 
     def test_hello_world_plugin(self):
-        return
         self.pm.handlePluginMessage({
             'action': 'plugin',
             'method': 'load',

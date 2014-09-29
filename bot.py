@@ -1,6 +1,6 @@
 import socket
 import subprocess
-from util import *
+import threading
 
 def log(msg, *args):
     msg = msg.format(*args) +" "
