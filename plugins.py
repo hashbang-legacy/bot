@@ -27,8 +27,16 @@ class CodePlugin:
         self.start()
 
     def start(self):
-        self.proc = subprocess.Popen(["/usr/bin/env", "python", "-u",
-            self.path],
+        line = self.code.split("\n")[0]
+        if not line.startswith("#!"):
+            print("Error: code doesn't start with #!...", self.code)
+            return
+        line = line[2:]
+
+        executable = line.split(" ")
+        executable.append(self.path)
+        self.log("running {}", executable)
+        self.proc = subprocess.Popen(executable,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
