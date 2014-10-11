@@ -93,26 +93,18 @@ def start():
     send("NICK {}", nick)
     send("USER a b c d :e")
 
-    # setup plugin manager
-
     def handler(obj):
-        #log("Plugin_output:")
-        #pprint.pprint(obj)
-
-        global i
-        i = i -1
-        if i > 0:
-            print("skipped",i)
-            return
-
         action = obj.get("action", "")
         if action == "message":
             send("PRIVMSG {} :{}", obj['channel'], obj['message'])
 
-
     pm = PluginManager(handler)
-    pm.loadPlugin("debug", DebugPlugin(pm.handlePluginMessage))
-    pm.loadPlugin("", PluginLoader(pm.handlePluginMessage))
+    #TODO There should be a way to just load a script given a path
+    pm.loadPlugin("startup.sh", CodePlugin(
+        pm.handlePluginMessage, "startup.sh",
+        open("startup.sh").read()
+        ))
+
     # main loop
     read = ""
     try:
@@ -122,9 +114,6 @@ def start():
             lines = read.split("\r\n")
             lines, read = lines[:-1],lines[-1]
             for line in lines:
-                #import subprocess
-                #subprocess.Popen("clear").wait()
-                print(">> {}".format(line))
                 line = parsemsg(line)
 
                 if line['command'] == 'PING':
