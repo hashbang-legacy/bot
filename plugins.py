@@ -14,16 +14,14 @@ class CodePlugin:
     __ID = 0
     def __init__(self, handler, name, code):
         CodePlugin.__ID += 1
-        name += str(CodePlugin.__ID)
         log("[CodePlugin] New code plugin:\n[{}]", name)
         self.handler = handler
         self.name = name
-        self.path = "/dev/shm/" + name
-        log("Opening {}", self.path)
+        self.code = code
+        self.path = "/dev/shm/" + name + str(CodePlugin.__ID)
         f = open(self.path, "w")
         f.write(code)
         f.close()
-        log("Closing {}", self.path)
         self.running = False
         self.start()
 
