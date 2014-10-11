@@ -36,8 +36,8 @@ class PluginManager:
         if name in self.plugins:
             log("PluginManager End of {}", name)
             plugin = self.plugins[name]
-            plugin.end()
             del self.plugins[name]
+            plugin.end()
 
     def loadPlugin(self, name, plugin):
         log("Loading plugin {} into {}", name, self.plugins)
