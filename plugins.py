@@ -15,6 +15,7 @@ class CodePlugin:
     def __init__(self, handler, name, code):
         CodePlugin.__ID += 1
         log("[CodePlugin] New code plugin:\n[{}]", name)
+        self.log = lambda msg,*args:log("{} " + msg, name, *args)
         self.handler = handler
         self.name = name
         self.code = code
@@ -36,9 +37,10 @@ class CodePlugin:
         def readThread():
             self.running = True
             while self.running:
-                log("{} waiting", self.name)
+                self.log("waiting")
                 line = self.proc.stdout.readline().decode('utf-8')
-                log("{} -> {}", self.name, line)
+                self.log("read {}", line)
+
                 if not line:
                     log("Plugin {} returned an empty line, polling", self.name)
                         # if running is true, then it was the script that quit
