@@ -50,14 +50,10 @@ class CodePlugin:
                 self.log("read {}", line)
 
                 if not line:
-                    log("Plugin {} returned an empty line, polling", self.name)
-                        # if running is true, then it was the script that quit
-                        # if running is false, then we've called 'end'
-                        #   and then the terminate caused the process exit
-                    self.proc.poll()
-                    if self.proc.returncode is not None:
-                        log("Plugin {} died. Exit: {}", self.name, self.proc.returncode)
-                        self.end()
+                    self.log("Empty line, checking if we exited")
+                    if self.checkExitState():
+                        return
+
                 else:
                     line = line.strip()
                     try:
@@ -84,6 +80,27 @@ class CodePlugin:
         except:
             #self.restart()
             raise
+
+    def checkExitState(self):
+        self.proc.poll()
+        if self.proc.returncode is None:
+            self.log("Process hasn't exited.")
+            return False
+        self.log("Exit code {}", self.proc.returncode)
+
+        # If the exit code is 0, the process exited normally,
+        # this is a signal that we can reload the plugin.
+        if self.proc.returncode is not 0:
+            # Log the exit code
+            self.handler({"action":"message",
+                "channel":"#test",
+                "message":"Plugin {} exited with code {}"
+                        .format(self.name, self.proc.returncode)})
+            # Unload the process
+            self.handler({"action":"plugin",
+                "method":"unload",
+                "name":self.name})
+        return True
 
     def end(self):
         log("{} Ending", self.name)
