@@ -14,7 +14,7 @@ class CodePlugin:
     __ID = 0
     def __init__(self, handler, name, code):
         CodePlugin.__ID += 1
-        log("[CodePlugin] New code plugin:\n[{}]", name)
+        log("[CodePlugin] New code plugin:\n[{}]{}", name, code)
         self.log = lambda msg,*args:log("{} " + msg, name, *args)
         self.handler = handler
         self.name = name
@@ -39,8 +39,8 @@ class CodePlugin:
         self.proc = subprocess.Popen(executable,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            cwd = "/dev/shm/")
+            stderr=subprocess.PIPE)
+            #, cwd = "/dev/shm/")
 
         def readThread():
             self.running = True
@@ -71,10 +71,11 @@ class CodePlugin:
         try:
             self.proc.poll()
             if self.proc.returncode is not None:
+                # only start if the last exit was an error code
                 self.start()
 
             #log("Sending {} to {}", obj, self.name)
-            log("Sending to {}", self.name)
+            #log("Sending to {}", self.name)
             self.proc.stdin.write(json.dumps(obj).encode('utf-8') + b"\n")
             self.proc.stdin.flush()
         except:
@@ -149,7 +150,15 @@ class PluginLoader:
                 # ['!plugin', '[un]load', 'name'] + optional code
                 name = line[2]
                 if line[1] == "load":
-                    code = line[3]
+                    code = (
+                        "#!/usr/bin/env python\n" +
+                        "import json\n" +
+                        "line=json.loads(input())\n" +
+                        obj["code"].replace('\\n','\n')
+                    )
+
+                    code += line[3]
+
                     self.handler({
                         "action": "plugin",
                         "method": "load",

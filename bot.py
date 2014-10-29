@@ -63,11 +63,9 @@ class PluginManager:
                 log("handlePluginMessage Code: {}",
                         obj['code'].replace("\\n", "\n"))
                 self.loadPlugin(name,
-                        CodePlugin(self.handlePluginMessage, name, (
-                            "#!/usr/bin/env python\n" +
-                            "import json\n" +
-                            "line=json.loads(input())\n" +
-                            obj["code"].replace('\\n','\n'))))
+                        CodePlugin(
+                            self.handlePluginMessage,
+                            name, obj["code"]))
             elif method == "unload":
                 self.unloadPlugin(name)
         else:
