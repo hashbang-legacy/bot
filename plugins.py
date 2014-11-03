@@ -1,6 +1,7 @@
 import json
 import threading
 import subprocess
+
 from utils import log
 
 class CodePlugin(object):
@@ -114,7 +115,7 @@ class CodePlugin(object):
 
         log("{} Ended", self.name)
 
-class DebugPlugin:
+class DebugPlugin(object):
     def __init__(self, handler):
         """
         handler(obj) - pass a message back up through the bot
@@ -136,7 +137,7 @@ class DebugPlugin:
     def end(self):
         return
 
-class PluginLoader:
+class PluginLoader(object):
     def __init__(self, handler):
         self.handler = handler
     def end(self):
@@ -169,5 +170,3 @@ class PluginLoader:
                         "name": name})
 
         self.handler(obj)
-
-
