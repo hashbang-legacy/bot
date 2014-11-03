@@ -1,11 +1,9 @@
+import pprint
 import socket
 import json
-from plugins import *
 
-def log(msg, *args):
-    msg = msg.format(*args) +" "
-    first, rest = msg.split(" ",1)
-    print("\033[33m{}\033[0m {}".format(first, rest))
+from plugins import CodePlugin
+from utils import log
 
 def parsemsg(line):
     """Breaks a message from an IRC server into its prefix, command, and
@@ -27,7 +25,10 @@ def parsemsg(line):
         args = s.split()
     command = args.pop(0)
     return {'prefix':prefix, 'command':command, 'args':args, 'raw':line}
-class PluginManager:
+
+
+class PluginManager(object):
+
     def __init__(self, handler):
         self.handler = handler
         self.plugins = {}
@@ -35,14 +36,23 @@ class PluginManager:
     def unloadPlugin(self, name):
         if name in self.plugins:
             log("PluginManager End of {}", name)
-            plugin = self.plugins[name]
-            del self.plugins[name]
-            plugin.end()
 
-    def loadPlugin(self, name, plugin):
+            self.plugins[name].end()
+
+            del self.plugins[name]
+
+    def loadPlugin(self, name, handler, code=None):
+
         log("Loading plugin {} into {}", name, self.plugins)
+
         if name in self.plugins:
             self.unloadPlugin(name)
+
+        if not code: # Use name as path and load code.
+            code = open(name).read()
+
+        plugin = CodePlugin(handler, name, code)
+
         self.plugins[name] = plugin
 
     def end(self):
@@ -56,26 +66,27 @@ class PluginManager:
             plugin.handleMessage(obj)
 
     def handlePluginMessage(self, obj):
-        if obj.get("action","") == "plugin":
-            method = obj["method"]
-            name = obj["name"]
+        if obj.get("action", "") == "plugin":
+
+            method = obj.get('method', '')
+            name = obj.get('name', '')
+            code = obj.get('code', None)
+
+            #TODO: error handling for no method/name
+
             if method == "load":
-                log("handlePluginMessage Code: {}",
-                        obj['code'].replace("\\n", "\n"))
-                self.loadPlugin(name,
-                        CodePlugin(
-                            self.handlePluginMessage,
-                            name, obj["code"]))
+                log("handlePluginMessage Code: {}", code.replace("\\n", "\n"))
+
+                self.loadPlugin(name, self.handlePluginMessage, code=code)
+
             elif method == "unload":
                 self.unloadPlugin(name)
         else:
             self.handler(obj)
 
-import pprint
-i = 30
 def start():
-    hostport = ('localhost', 4445)
-    nick = '[bot]'
+    hostport = ('og.hashbang.sh', 4445)
+    nick = 'brokens_test'
     password = 'hashbangbot:password'
 
     sock = socket.socket()
@@ -97,11 +108,7 @@ def start():
             send("PRIVMSG {} :{}", obj['channel'], obj['message'])
 
     pm = PluginManager(handler)
-    #TODO There should be a way to just load a script given a path
-    pm.loadPlugin("startup.sh", CodePlugin(
-        pm.handlePluginMessage, "startup.sh",
-        open("startup.sh").read()
-        ))
+    pm.loadPlugin('startup.sh', handler=pm.handlePluginMessage)
 
     # main loop
     read = ""
@@ -129,8 +136,3 @@ if __name__ == "__main__":
         print("Exceptional exit:")
         raise
     print("Regular Exit")
-
-
-
-
-

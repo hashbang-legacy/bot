@@ -1,17 +1,15 @@
 import json
 import threading
 import subprocess
-def log(msg, *args):
-    msg = msg.format(*args) +" "
-    first, rest = msg.split(" ",1)
-    print("\033[33m{}\033[0m {}".format(first, rest))
+from utils import log
 
-
-
-class CodePlugin:
-    """ Keep a singleton select loop that runs on a map of fileno->CodePlugins
+class CodePlugin(object):
     """
+    Keep a singleton select loop that runs on a map of fileno->CodePlugins
+    """
+
     __ID = 0
+
     def __init__(self, handler, name, code):
         CodePlugin.__ID += 1
         log("[CodePlugin] New code plugin:\n[{}]{}", name, code)
