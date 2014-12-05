@@ -1,172 +1,115 @@
+import pprint
 import json
 import threading
 import subprocess
 
 from utils import log
 
-class CodePlugin(object):
-    """
-    Keep a singleton select loop that runs on a map of fileno->CodePlugins
+class DebugPlugin:
+    """ Print out the messages that plugins would receive, through stdout"""
+    def __init__(self, bot):
+        self.bot = bot
+
+    def handleMessage(self, message):
+        log("----DEBUG---- \n{}", pprint.pformat(message))
+
+class ScriptStarterPlugin:
+    """Delay the loading of scripts until after all the MOTD
+    and channel joins and nick messages etcc.. are done.
+
+    When you receive your first channel/pm message 'PRIVMSG'
+    it's assumed you're ready.
     """
 
-    __ID = 0
+    def __init__(self, plugins):
+        self.plugins = plugins
 
-    def __init__(self, handler, name, code):
-        CodePlugin.__ID += 1
-        log("[CodePlugin] New code plugin:\n[{}]{}", name, code)
-        self.log = lambda msg,*args:log("{} " + msg, name, *args)
-        self.handler = handler
-        self.name = name
-        self.code = code
-        self.path = "/dev/shm/" + name + str(CodePlugin.__ID)
-        f = open(self.path, "w")
-        f.write(code)
-        f.close()
-        self.running = False
+    def __call__(self, bot):
+        self.bot = bot
+        return self
+
+    def handleMessage(self, message):
+        if message['command'] == 'PRIVMSG':
+            for plugin in self.plugins:
+                self.bot.loadPlugin(ScriptPlugin(plugin))
+            self.bot.unload()
+
+
+class ScriptPlugin:
+    """Launch a bash script as a plugin.
+    bash scripts are launched as
+    bash plugins/{plugin name}/start.sh
+    """
+    def __init__(self, script):
+        self.script = script
+
+    def __call__(self, bot):
+        self.bot = bot
         self.start()
+        return self
 
     def start(self):
-        line = self.code.split("\n")[0]
-        if not line.startswith("#!"):
-            print("Error: code doesn't start with #!...", self.code)
-            return
-        line = line[2:]
-
-        executable = line.split(" ")
-        executable.append(self.path)
-        self.log("running {}", executable)
+        executable = ["bash", "start.sh"]
+        self.running = True
         self.proc = subprocess.Popen(executable,
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE)
-            #, cwd = "/dev/shm/")
+            stdin = subprocess.PIPE,
+            stdout = subprocess.PIPE,
+            stderr = subprocess.STDOUT,
+            cwd="plugins/" + self.script)
+
 
         def readThread():
-            self.running = True
+            print("Read thread")
             while self.running:
-                self.log("waiting")
                 line = self.proc.stdout.readline().decode('utf-8')
-                self.log("read {}", line)
-
                 if not line:
-                    self.log("Empty line, checking if we exited")
-                    if self.checkExitState():
-                        return
+                    log(self.script +" read empty line. dieing")
+                    self.die()
+                    return
 
-                else:
+                try:
                     line = line.strip()
-                    try:
-                        self.handler(json.loads(line))
-                    except:
-                        self.handler({"action":"message",
-                            "channel":"#test",
-                            "message": "Plugin {} output invalid json: {}"
-                                        .format(self.name, line)})
+                    self.handleProcessMessage(json.loads(line))
+                except:
+                    print("E:" + line)
+                    #self.die()
+                    #log(self.script + " had an exception")
+                    #raise
+
         self.thread = threading.Thread(target=readThread)
         self.thread.start()
-        log("started {}".format(self.name))
+        log("started {}".format(self.script))
 
-    def handleMessage(self, obj):
+    def handleProcessMessage(self, message):
+        command = message.get("command", "")
+        commands = {
+                # Map of commands to (callback, [args])
+                "message": (self.bot.privmsg, ["channel", "message"])
+        }
+        # magic.
+
+        func,args = commands.get(command, (lambda :None, []))
+        func(*map(message.get, args))
+
+
+    def handleMessage(self, message):
         try:
-            self.proc.poll()
-            if self.proc.returncode is not None:
-                # only start if the last exit was an error code
-                self.start()
-
-            #log("Sending {} to {}", obj, self.name)
-            #log("Sending to {}", self.name)
-            self.proc.stdin.write(json.dumps(obj).encode('utf-8') + b"\n")
+            print("HandleMessage:", message)
+            self.proc.stdin.write(json.dumps(message).encode('utf-8') + b"\n")
             self.proc.stdin.flush()
         except:
-            #self.restart()
-            raise
+            self.bot.privmsg("#test", "Plugin: {} has died.".format(self.script))
+            self.die()
 
-    def checkExitState(self):
-        self.proc.poll()
-        if self.proc.returncode is None:
-            self.log("Process hasn't exited.")
-            return False
-        self.log("Exit code {}", self.proc.returncode)
-
-        # If the exit code is 0, the process exited normally,
-        # this is a signal that we can reload the plugin.
-        if self.proc.returncode is not 0:
-            # Log the exit code
-            self.handler({"action":"message",
-                "channel":"#test",
-                "message":"Plugin {} exited with code {}"
-                        .format(self.name, self.proc.returncode)})
-            # Unload the process
-            self.handler({"action":"plugin",
-                "method":"unload",
-                "name":self.name})
-        return True
-
-    def end(self):
-        log("{} Ending", self.name)
+    def die(self):
         self.running = False
         try:
             self.proc.terminate()
-            self.proc.wait()
-        except:pass
+        except:
+            pass
+        self.bot.unload()
 
-        if threading.currentThread() != self.thread:
-            self.thread.join()
+    def __del__(self):
+        self.die()
 
-        log("{} Ended", self.name)
 
-class DebugPlugin(object):
-    def __init__(self, handler):
-        """
-        handler(obj) - pass a message back up through the bot
-                     - obj can be an irc reply, or a plugin command
-        """
-        self.handler = handler
-        self.seen_mode_line = False
-
-    def handleMessage(self, obj):
-        """ obj - irc message as dict """
-        if self.seen_mode_line:
-            self.handler({
-                "action":"message",
-                "channel":"#test",
-                "message": json.dumps(obj)})
-        if obj.get("command","") == "366":
-            self.seen_mode_line = True
-
-    def end(self):
-        return
-
-class PluginLoader(object):
-    def __init__(self, handler):
-        self.handler = handler
-    def end(self):
-        pass
-    def handleMessage(self, obj):
-        if obj.get('command','') == 'PRIVMSG':
-            line = obj['args'][1].split(" ", 3)
-            if line[0] == "!plugin" and len(line) >= 3:
-                # ['!plugin', '[un]load', 'name'] + optional code
-                name = line[2]
-                if line[1] == "load":
-                    code = (
-                        "#!/usr/bin/env python\n" +
-                        "import json\n" +
-                        "line=json.loads(input())\n" +
-                        obj["code"].replace('\\n','\n')
-                    )
-
-                    code += line[3]
-
-                    self.handler({
-                        "action": "plugin",
-                        "method": "load",
-                        "code": code,
-                        "name": name})
-                elif line[1] == "unload":
-                    self.handler({
-                        "action": "plugin",
-                        "method": "unload",
-                        "name": name})
-
-        self.handler(obj)

@@ -32,3 +32,29 @@ def log(msg, *args):
     first, rest = msg.split(" ",1)
     print("\033[33m{}\033[0m {}".format(first, rest))
 
+def connect(config):
+    import socket
+    sock = socket.socket()
+    sock.connect((config['host'], config['port']))
+    return sock
+
+def messageIterator(socket):
+    read = ""
+    try:
+        while True:
+            data = socket.recv(1024)
+            if not data:
+                return
+
+            read += data.decode('utf-8')
+            lines = read.split("\r\n")
+            lines, read = lines[:-1],lines[-1]
+
+            for line in lines:
+                yield parsemsg(line)
+
+    except KeyboardInterrupt:
+        log("Keyboard interrupt")
+        return
+
+

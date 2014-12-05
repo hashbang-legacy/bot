@@ -1,117 +1,95 @@
-import pprint
-import socket
-import json
 
-from plugins import CodePlugin
-from utils import log, parsemsg
+from plugins import ScriptStarterPlugin, DebugPlugin
+from utils import log, parsemsg, connect, messageIterator
 
-
-class PluginManager(object):
-
-    def __init__(self, handler):
-        self.handler = handler
+class Bot:
+    def __init__(self, config):
+        self.sock = connect(config)
+        self.authenticate(config)
         self.plugins = {}
+        self.toUnload = []
+        self.toLoad = []
 
-    def unloadPlugin(self, name):
-        if name in self.plugins:
-            log("PluginManager End of {}", name)
-
-            self.plugins[name].end()
-
-            del self.plugins[name]
-
-    def loadPlugin(self, name, handler, code=None):
-
-        log("Loading plugin {} into {}", name, self.plugins)
-
-        if name in self.plugins:
-            self.unloadPlugin(name)
-
-        if not code: # Use name as path and load code.
-            code = open(name).read()
-
-        plugin = CodePlugin(handler, name, code)
-
-        self.plugins[name] = plugin
-
-    def end(self):
-        """ shutdown the plugin manager """
-        for plugin in self.plugins.values():
-            plugin.end()
-
-    def handleMessage(self, obj):
-        """ Handle messages from irc in the form of a dict """
-        for plugin in list(self.plugins.values()):
-            plugin.handleMessage(obj)
-
-    def handlePluginMessage(self, obj):
-        if obj.get("action", "") == "plugin":
-
-            method = obj.get('method', '')
-            name = obj.get('name', '')
-            code = obj.get('code', None)
-
-            #TODO: error handling for no method/name
-
-            if method == "load":
-                log("handlePluginMessage Code: {}", code.replace("\\n", "\n"))
-
-                self.loadPlugin(name, self.handlePluginMessage, code=code)
-
-            elif method == "unload":
-                self.unloadPlugin(name)
-        else:
-            self.handler(obj)
-
-def start():
-    hostport = ('og.hashbang.sh', 4445)
-    nick = '[bot]'
-    password = 'hashbangbot:password'
-
-    sock = socket.socket()
-    sock.connect(hostport)
-
-    def send(message, *args):
+    def send(self, message, *args):
         data = message.format(*args).encode('utf-8')
-        sock.send(data + b"\r\n")
+        self.sock.send(data)
+        self.sock.send(b"\r\n")
+        print(b"<<" + data)
 
-    # Handshake
-    if password:
-        send("PASS {}", password)
-    send("NICK {}", nick)
-    send("USER a b c d :e")
+    def authenticate(self, config):
+        if "password" in config:
+            self.send("PASS {}", config["password"])
 
-    def handler(obj):
-        action = obj.get("action", "")
-        if action == "message":
-            send("PRIVMSG {} :{}", obj['channel'], obj['message'])
+        self.send("NICK {}", config["nick"])
+        self.send("USER a b c d :e")
 
-    pm = PluginManager(handler)
-    pm.loadPlugin('startup.sh', handler=pm.handlePluginMessage)
+    def loop(self):
+        for message in messageIterator(self.sock):
+            for uuid, plugin in self.plugins.items():
+                plugin.handleMessage(message)
 
-    # main loop
-    read = ""
-    try:
-        while True:
-            data = sock.recv(1024)
-            read += data.decode('utf-8')
-            lines = read.split("\r\n")
-            lines, read = lines[:-1],lines[-1]
-            for line in lines:
-                line = parsemsg(line)
+            while self.toLoad:
+                self.__loadPlugin(self.toLoad.pop())
 
-                if line['command'] == 'PING':
-                    send("PONG {}", line['args'][0])
+            while self.toUnload:
+                del self.plugins[self.toUnload.pop()]
 
-                pm.handleMessage(line)
-    except KeyboardInterrupt:
-        log("END")
-        pm.end()
+
+        for key in list(self.plugins):
+            del self.plugins[key]
+
+    def loadPlugin(self, plugin_cls):
+        print("LOAD: " + str(plugin_cls))
+        import uuid
+        if type(plugin_cls) == uuid.UUID:
+            i = 0;
+            i/=0;
+        self.toLoad.append(plugin_cls)
+
+    def __loadPlugin(self, plugin_cls):
+        import uuid
+
+        key = uuid.uuid4()
+        instance = plugin_cls(Bot.API(self, key))
+
+        self.plugins[key] = instance
+        return key
+
+    def unloadPlugin(self, key):
+        self.toUnload.append(key)
+
+    class API:
+        # Class given to plugins to interact with the bot.
+        def __init__(self, bot, key):
+            self.__bot = bot
+            self.__key = key
+
+        def loadPlugin(self, plugin):
+            self.__bot.loadPlugin(plugin)
+
+        def unload(self):
+            self.__bot.unloadPlugin(self.__key)
+
+        def privmsg(self, channel, message):
+            self.__bot.send("PRIVMSG {} :{}", channel, message)
 
 if __name__ == "__main__":
     try:
-        start()
+        config = {
+            "host": "og.hashbang.sh",
+            "port": 4445,
+            "nick": "[bot]",
+            "password": "hashbangbot:password",
+            "plugins": ['example']
+        }
+
+        bot = Bot(config)
+        bot.loadPlugin(DebugPlugin)
+        bot.loadPlugin(ScriptStarterPlugin(config['plugins']))
+        bot.loop()
+
+        print("Regular Exit")
     except:
         print("Exceptional exit:")
         raise
-    print("Regular Exit")
+
