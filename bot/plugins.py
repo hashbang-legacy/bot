@@ -6,13 +6,14 @@ import traceback
 
 from .utils import log
 
-class DebugPlugin:
-    """ Print out the messages that plugins would receive, through stdout"""
+class PingPlugin:
+    """Respond to pings"""
     def __init__(self, bot):
         self.bot = bot
 
     def handleMessage(self, message):
-        log("----DEBUG---- \n{}", pprint.pformat(message))
+        if message['command'] == 'PING':
+            self.bot.pong(message['args'][0])
 
 class ScriptStarterPlugin:
     """Delay the loading of scripts until after all the MOTD

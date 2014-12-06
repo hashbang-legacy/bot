@@ -1,5 +1,5 @@
 from bot import Bot
-from bot.plugins import DebugPlugin, ScriptStarterPlugin
+from bot.plugins import PingPlugin, ScriptStarterPlugin
 import json
 
 if __name__ == "__main__":
@@ -7,6 +7,7 @@ if __name__ == "__main__":
         config = json.loads(open("config.json").read())
 
         bot = Bot(config)
+        bot.loadPlugin(PingPlugin)
         bot.loadPlugin(ScriptStarterPlugin(config['plugins']))
         bot.loop()
 

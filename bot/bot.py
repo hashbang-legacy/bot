@@ -62,12 +62,19 @@ class Bot:
             self.__bot = bot
             self.__key = key
 
+        # Plugin management
         def loadPlugin(self, plugin):
             self.__bot.loadPlugin(plugin)
 
         def unload(self):
             self.__bot.unloadPlugin(self.__key)
 
+        # Irc commands
         def privmsg(self, channel, message):
-            self.__bot.send("PRIVMSG {} :{}", channel, message)
+            self.quote("PRIVMSG {} :{}", channel, message)
 
+        def pong(self, server):
+            self.quote("PONG {}", server)
+
+        def quote(self, line, *args):
+            self.__bot.send(line.format(*args))
