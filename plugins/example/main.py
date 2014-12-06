@@ -14,7 +14,7 @@ while True:
     # Format a nice string
     out = ", ".join([
         kv_str.format(key, value)
-        for (key, value) in message.items()
+        for (key, value) in sorted(message.items())
     ])
 
     print(json.dumps({
