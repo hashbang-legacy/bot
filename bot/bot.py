@@ -13,7 +13,6 @@ class Bot:
         data = message.format(*args).encode('utf-8')
         self.sock.send(data)
         self.sock.send(b"\r\n")
-        print(b"<<" + data)
 
     def authenticate(self, config):
         if "password" in config:

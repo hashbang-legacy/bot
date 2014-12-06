@@ -36,7 +36,25 @@ def connect(config):
     import socket
     sock = socket.socket()
     sock.connect((config['host'], config['port']))
-    return sock
+
+    class Wrapper:
+        def __init__(self, sock):
+            self.sock = sock
+
+        def send(self, message):
+            string = message.decode('utf-8').strip()
+            for msg in string.split("\r\n"):
+                print("<<", msg)
+
+            self.sock.send(message)
+
+        def recv(self, count):
+            val = self.sock.recv(count)
+            string = val.decode('utf-8').strip()
+            for msg in string.split("\r\n"):
+                print(">>", msg)
+            return val
+    return Wrapper(sock)
 
 def messageIterator(socket):
     read = ""
