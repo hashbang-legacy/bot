@@ -3,7 +3,7 @@ import json
 import threading
 import subprocess
 
-from utils import log
+from .utils import log
 
 class DebugPlugin:
     """ Print out the messages that plugins would receive, through stdout"""
