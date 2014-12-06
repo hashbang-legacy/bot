@@ -2,6 +2,7 @@ import pprint
 import json
 import threading
 import subprocess
+import traceback
 
 from .utils import log
 
@@ -42,6 +43,9 @@ class ScriptPlugin:
     """
     def __init__(self, script):
         self.script = script
+        self.running = False
+        self.proc = None
+        self.lock = threading.RLock()
 
     def __call__(self, bot):
         self.bot = bot
@@ -54,31 +58,37 @@ class ScriptPlugin:
         self.proc = subprocess.Popen(executable,
             stdin = subprocess.PIPE,
             stdout = subprocess.PIPE,
-            stderr = subprocess.STDOUT,
+            stderr = subprocess.PIPE,
             cwd="plugins/" + self.script)
 
 
-        def readThread():
-            print("Read thread")
+        def reader(stream, callback):
             while self.running:
-                line = self.proc.stdout.readline().decode('utf-8')
+                line = stream.readline().decode('utf-8').rstrip()
                 if not line:
-                    log(self.script +" read empty line. dieing")
-                    self.die()
-                    return
+                    self.proc.poll() # Check if we're still alive.
+                    if self.proc is not None:
+                        self.die()
 
-                try:
-                    line = line.strip()
+                callback(line)
+
+        def stdout(line):
+            try:
+                log("script {} out {}", self.script, line)
+                if line:
                     self.handleProcessMessage(json.loads(line))
-                except:
-                    print("E:" + line)
-                    #self.die()
-                    #log(self.script + " had an exception")
-                    #raise
+                    return
+            except:
+                traceback.print_exc()
+            self.die()
 
-        self.thread = threading.Thread(target=readThread)
-        self.thread.start()
-        log("started {}".format(self.script))
+        def stderr(line):
+            log("script {} err {}", self.script, line)
+
+
+        threading.Thread(target=reader, args=(self.proc.stdout, stdout)).start()
+        threading.Thread(target=reader, args=(self.proc.stderr, stderr)).start()
+        log("script {} start ".format(self.script))
 
     def handleProcessMessage(self, message):
         command = message.get("command", "")
@@ -94,15 +104,21 @@ class ScriptPlugin:
 
     def handleMessage(self, message):
         try:
-            print("HandleMessage:", message)
             self.proc.stdin.write(json.dumps(message).encode('utf-8') + b"\n")
             self.proc.stdin.flush()
         except:
-            self.bot.privmsg("#test", "Plugin: {} has died.".format(self.script))
+            self.bot.privmsg("#test", "Plugin: {} has died.", self.script)
             self.die()
 
     def die(self):
-        self.running = False
+        with self.lock:
+            if not self.running:
+                #already dead.
+                return
+            self.running = False
+
+        log("script {} end ", self.script)
+
         try:
             self.proc.terminate()
         except:

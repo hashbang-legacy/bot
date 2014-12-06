@@ -1,4 +1,4 @@
-from .plugins import ScriptStarterPlugin, DebugPlugin
+from .plugins import ScriptStarterPlugin
 from .utils import log, parsemsg, connect, messageIterator
 
 class Bot:

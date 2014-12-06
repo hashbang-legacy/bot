@@ -7,7 +7,6 @@ if __name__ == "__main__":
         config = json.loads(open("config.json").read())
 
         bot = Bot(config)
-        bot.loadPlugin(DebugPlugin)
         bot.loadPlugin(ScriptStarterPlugin(config['plugins']))
         bot.loop()
 
