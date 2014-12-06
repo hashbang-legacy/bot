@@ -1,16 +1,10 @@
 from bot import Bot
 from bot.plugins import DebugPlugin, ScriptStarterPlugin
-
+import json
 
 if __name__ == "__main__":
     try:
-        config = {
-            "host": "og.hashbang.sh",
-            "port": 4445,
-            "nick": "[bot]",
-            "password": "hashbangbot:password",
-            "plugins": ['example']
-        }
+        config = json.loads(open("config.json").read())
 
         bot = Bot(config)
         bot.loadPlugin(DebugPlugin)
