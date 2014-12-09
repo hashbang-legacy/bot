@@ -44,7 +44,8 @@ def connect(config):
         def send(self, message):
             string = message.decode('utf-8').strip()
             for msg in string.split("\r\n"):
-                print("<<", msg)
+                if msg:
+                    print("<<" + msg.encode('unicode_escape').decode('ascii'))
 
             self.sock.send(message)
 
@@ -52,7 +53,8 @@ def connect(config):
             val = self.sock.recv(count)
             string = val.decode('utf-8').strip()
             for msg in string.split("\r\n"):
-                print(">>", msg)
+                if msg:
+                    print(">>" + msg.encode('unicode_escape').decode('ascii'))
             return val
     return Wrapper(sock)
 
