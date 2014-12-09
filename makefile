@@ -4,4 +4,4 @@ all:
 	python main.py
 
 test:
-	python -m unittest discover
+	python -m unittest discover -v
