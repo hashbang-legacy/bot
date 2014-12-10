@@ -18,7 +18,7 @@ class Bot:
         if "password" in config:
             self.send("PASS {}", config["password"])
 
-        self.send("NICK {}", config["nick"])
+        self.send("NICK {}", config.get("nick", "unnamedBot"))
         self.send("USER a b c d :e")
 
     def loop(self):

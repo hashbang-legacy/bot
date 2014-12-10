@@ -35,7 +35,7 @@ def log(msg, *args):
 def connect(config):
     import socket
     sock = socket.socket()
-    sock.connect((config['host'], config['port']))
+    sock.connect((config['host'], config.get('port', 6667))) # Default port 6667
 
     class Wrapper:
         def __init__(self, sock):
