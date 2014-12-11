@@ -32,31 +32,36 @@ def log(msg, *args):
     first, rest = msg.split(" ",1)
     print("\033[33m{}\033[0m {}".format(first, rest))
 
+class RecordedSock:
+    def __init__(self, sock, filename):
+        self.sock = sock
+        if filename == "-":
+            import sys
+            self.stream = sys.stdout
+        else:
+            self.stream = open(filename, "w")
+
+    def send(self, message):
+        print("<" + message.decode('utf-8').encode('unicode_escape').decode('ascii'), file = self.stream)
+        self.sock.send(message)
+
+    def recv(self, count):
+        message = self.sock.recv(count)
+        print(">" + message.decode('utf-8').encode('unicode_escape').decode('ascii'), file = self.stream)
+        return message
+
+    def __del__(self):
+        self.stream.flush()
+
 def connect(config):
     import socket
     sock = socket.socket()
     sock.connect((config['host'], config.get('port', 6667))) # Default port 6667
 
-    class Wrapper:
-        def __init__(self, sock):
-            self.sock = sock
+    if config.get("RecordNetData", ""):
+        sock = RecordedSock(sock, config.get("RecordNetData"));
 
-        def send(self, message):
-            string = message.decode('utf-8').strip()
-            for msg in string.split("\r\n"):
-                if msg:
-                    print("<<" + msg.encode('unicode_escape').decode('ascii'))
-
-            self.sock.send(message)
-
-        def recv(self, count):
-            val = self.sock.recv(count)
-            string = val.decode('utf-8').strip()
-            for msg in string.split("\r\n"):
-                if msg:
-                    print(">>" + msg.encode('unicode_escape').decode('ascii'))
-            return val
-    return Wrapper(sock)
+    return sock
 
 def messageIterator(socket):
     read = ""
