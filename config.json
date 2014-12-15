@@ -2,6 +2,6 @@
   "port": 4445,
   "nick": "[bot]",
   "password": "hashbangbot:password",
-  "plugins": ["example", "debug"],
+  "plugins": ["example", "debug", "ddg"],
   "RecordNetData": "netLog"
 }
