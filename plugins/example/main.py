@@ -1,7 +1,7 @@
 import json
 color = "\0034"
 nocolor = "\0030"
-kv_str = "\0033{}\0030={}"
+kv_str = "\"\0033{}\0030\":{}"
 
 while True:
     line = input()
@@ -13,12 +13,12 @@ while True:
 
     # Format a nice string
     out = ", ".join([
-        kv_str.format(key, value)
+        kv_str.format(key, json.dumps(value))
         for (key, value) in sorted(message.items())
     ])
 
     print(json.dumps({
         "command": "message",
         "channel": "#test",
-        "message": out
+        "message": "{{" + out + "}}"
         }))
