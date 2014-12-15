@@ -10,11 +10,16 @@ class Bot:
         self.toLoad = []
 
     def send(self, message, *args):
+        """ Send a message to the connected server.
+        Accepts *args as the message can be formatted.
+
+        This method adds the trailing newlines"""
         data = message.format(*args).encode('utf-8')
         self.sock.send(data)
         self.sock.send(b"\r\n")
 
     def authenticate(self, config):
+        """ Handshake with the IRC server. If there's a password, use it."""
         if "password" in config:
             self.send("PASS {}", config["password"])
 
@@ -22,6 +27,10 @@ class Bot:
         self.send("USER a b c d :e")
 
     def loop(self):
+        """ Main loop of the bot.
+        Dispatch each message to each loaded plugin.
+        Handle any plugin changes (load/unloads).
+        """
         for message in messageIterator(self.sock):
             for uuid, plugin in self.plugins.items():
                 plugin.handleMessage(message)
@@ -37,14 +46,13 @@ class Bot:
             del self.plugins[key]
 
     def loadPlugin(self, plugin_cls):
+        """ Schedule a plugin to be loaded """
         print("LOAD: " + str(plugin_cls))
-        import uuid
-        if type(plugin_cls) == uuid.UUID:
-            i = 0;
-            i/=0;
         self.toLoad.append(plugin_cls)
 
     def __loadPlugin(self, plugin_cls):
+        """ Actually load a plugin. """
+
         import uuid
 
         key = uuid.uuid4()
@@ -53,7 +61,8 @@ class Bot:
         self.plugins[key] = instance
         return key
 
-    def unloadPlugin(self, key):
+    def unloadPlugin(self, key):i
+        """ Schedule a plugin to be unloaded """
         self.toUnload.append(key)
 
     class API:
@@ -64,17 +73,19 @@ class Bot:
 
         # Plugin management
         def loadPlugin(self, plugin):
+            """ Tell the bot to load another plugin."""
             self.__bot.loadPlugin(plugin)
 
         def unload(self):
+            """ Tell the bot to unload the current plugin"""
             self.__bot.unloadPlugin(self.__key)
 
         # Irc commands
         def privmsg(self, channel, message):
+            """ Send a PRIVMSG to a channel (or nick) """
             self.quote("PRIVMSG {} :{}", channel, message)
 
-        def pong(self, server):
-            self.quote("PONG {}", server)
-
         def quote(self, line, *args):
+            """ Send an arbitrary message to the server, this message
+            can have optional formatting to it. """
             self.__bot.send(line.format(*args))

@@ -54,6 +54,12 @@ class RecordedSock:
         self.stream.flush()
 
 def connect(config):
+    """ Connect to
+    config['host'] on port config['port'] (default 6667)
+
+    if config["RecordNetData"] has been set, record network data to that file.
+    """
+
     import socket
     sock = socket.socket()
     sock.connect((config['host'], config.get('port', 6667))) # Default port 6667
@@ -64,6 +70,9 @@ def connect(config):
     return sock
 
 def messageIterator(socket):
+    """ Given a socket, read data from it and yield each complete message
+    This removes the trailing \r\n.
+    """
     read = ""
     try:
         while True:

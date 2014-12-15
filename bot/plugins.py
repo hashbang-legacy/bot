@@ -12,8 +12,9 @@ class PingPlugin:
         self.bot = bot
 
     def handleMessage(self, message):
+        """ Send a PONG response to each PING command."""
         if message['command'] == 'PING':
-            self.bot.pong(message['args'][0])
+            self.bot.quote("PONG {}", message['args'][0])
 
 class ScriptStarterPlugin:
     """Delay the loading of scripts until after all the MOTD
@@ -54,6 +55,13 @@ class ScriptPlugin:
         return self
 
     def start(self):
+        """ Start the plugin process.
+        execute bash plugins/{plugin name}/start.sh
+        pipe stderr to the bots stdout
+        pipe stdout to a handler
+        setup a stdin for handleMessage to write to.
+        """
+
         executable = ["bash", "start.sh"]
         self.running = True
         self.proc = subprocess.Popen(executable,
@@ -64,6 +72,9 @@ class ScriptPlugin:
 
 
         def reader(stream, callback):
+            """ Generic stream reading thread.
+            Read a line, pass it to the callback.
+            Handle end of stream """
             while self.running:
                 line = stream.readline().decode('utf-8').rstrip()
                 if not line:
@@ -74,6 +85,8 @@ class ScriptPlugin:
                 callback(line)
 
         def stdout(line):
+            """ Lines from the plugins stdout go to this wrappers
+            handleProcessMessage as an object"""
             try:
                 log("script {} out {}", self.script, line)
                 if line:
@@ -84,14 +97,17 @@ class ScriptPlugin:
             self.die()
 
         def stderr(line):
+            """ Stderr is just piped to the bots stdout"""
             log("script {} err {}", self.script, line)
-
 
         threading.Thread(target=reader, args=(self.proc.stdout, stdout)).start()
         threading.Thread(target=reader, args=(self.proc.stderr, stderr)).start()
         log("script {} start ".format(self.script))
 
     def handleProcessMessage(self, message):
+        """ Take the plugin output (dict) and produce the right
+        bot.API calls """
+
         command = message.get("command", "")
         commands = {
                 # Map of commands to (callback, [args])
@@ -104,6 +120,7 @@ class ScriptPlugin:
 
 
     def handleMessage(self, message):
+        """ Send a message (dict) to the plugin process. """
         try:
             self.proc.stdin.write(json.dumps(message).encode('utf-8') + b"\n")
             self.proc.stdin.flush()
@@ -112,6 +129,7 @@ class ScriptPlugin:
             self.die()
 
     def die(self):
+        """ Kill the subprocess associated with this plugin """
         with self.lock:
             if not self.running:
                 #already dead.
@@ -127,6 +145,10 @@ class ScriptPlugin:
         self.bot.unload()
 
     def __del__(self):
+        """ The bot calls this upon plugin removal
+        python /should/ call this upon shutdown.
+
+        Attempt to kill the process"""
         self.die()
 
 
