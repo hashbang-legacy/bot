@@ -7,7 +7,9 @@ Irc bot
 
 ### Getting Started
 
-Requirements and such.
+[python3.x](https://www.python.org/downloads/) is the only requirement.
+
+[make](http://www.gnu.org/software/make/) is optional (it's used as a runner/starter).
 
 ---
 
@@ -19,13 +21,14 @@ Requirements and such.
 
 ---
 
-### Features
+### Using the bot
 
-What it currently does.
+Firstly, edit the [config.json](https://github.com/hashbang/bot/blob/master/config.json) to your liking.
+
+Next, run `make` (or `python main.py`). This will start the bot and you're now up and running.
 
 ---
 
 ### Writing a Plugin
 
-What plugin writers need to know about the system.
-
+The bot starts plugins listed in the config file upon startup.
