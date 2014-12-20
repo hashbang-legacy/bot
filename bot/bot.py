@@ -61,7 +61,7 @@ class Bot:
         self.plugins[key] = instance
         return key
 
-    def unloadPlugin(self, key):i
+    def unloadPlugin(self, key):
         """ Schedule a plugin to be unloaded """
         self.toUnload.append(key)
 
