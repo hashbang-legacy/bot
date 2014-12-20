@@ -9,19 +9,17 @@ while True:
     if obj['command'] != 'PRIVMSG':
         continue
 
-    # This needs to be better...
-    nick = obj['prefix'].split("!")[0]
-    chan = obj['args'][0]
+    nick = obj['nick']
+    chan = obj['chan']
+    cmd =  obj['cmd']
+    terms = obj['terms']
 
-    term = obj['args'][1]
-    if term.startswith("!gs "):
-        term = term[4:]
-    elif term.startswith("!ddg "):
-        term = term[5:]
-    else:
+    if cmd not in ['!gs', '!ddg']:
         continue
 
-    result = json.loads(urllib.request.urlopen(DDG.format(term)).read().decode('utf-8'))
+    result = json.loads(
+        urllib.request.urlopen(DDG.format(terms)).read().decode('utf-8')
+    )
 
     print(json.dumps({
         "command": "message",

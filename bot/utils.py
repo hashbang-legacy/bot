@@ -21,8 +21,39 @@ def parsemsg(line):
     else:
         args = s.split()
     command = args.pop(0)
-    return {'prefix':prefix, 'command':command, 'args':args, 'raw':line}
 
+    msg = {
+       'prefix' : prefix,
+       'command': command,
+       'args'   : args,
+       'raw'    :  line
+    }
+
+    return annotatemsg(msg)
+
+def annotatemsg(msg):
+    """
+    Depending on command type will add convenience key/value sets.
+
+    """
+
+    command = msg['command']
+
+    if command == 'PRIVMSG':
+        args = msg['args']
+        nick = msg['prefix'].split('!')[0]
+        chan = args[0]
+        parts = args[1].split(' ')
+
+        msg.update({
+            'nick'  : nick,
+            'chan'  : chan,
+            'parts' : parts,
+            'cmd'   : parts[0],
+            'terms' : ' '.join(parts[1:]).strip(),
+        })
+
+    return msg
 
 def log(msg, *args):
     """
