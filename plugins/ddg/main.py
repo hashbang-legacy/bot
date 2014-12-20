@@ -25,7 +25,7 @@ while True:
 
     print(json.dumps({
         "command": "message",
-        "channel": "#test",
+        "channel": chan,
         "message": "{}: {}".format( nick, result["AbstractURL"])
     }))
 
