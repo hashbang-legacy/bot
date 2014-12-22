@@ -120,4 +120,43 @@ def messageIterator(socket):
         log("Keyboard interrupt")
         return
 
+def colorize(text, fg='white', bg='black'):
+    """
+    Human friendly k/v mapping of IRC colors.
 
+    @fg : Text color
+    @bg : Background color
+    """
+
+    mapping = {
+       'white'       : '00',
+       'black'       : '01',
+       'blue'        : '02',
+       'green'       : '03',
+       'red'         : '04',
+       'brown'       : '05',
+       'purple'      : '06',
+       'orange'      : '07',
+       'yellow'      : '08',
+       'light_green' : '09',
+       'teal'        : '10',
+       'light_cyan'  : '11',
+       'light_blue'  : '12',
+       'pink'        : '13',
+       'grey'        : '14',
+       'light_grey'  : '15'
+    }
+
+    color_format = '\x03{},{}{}\x03'
+
+    if not fg in mapping:
+        fg = 'white'
+
+    if not bg in mapping:
+        bg = 'black'
+
+    return color_format.format(
+        mapping[fg],
+        mapping[bg],
+        text
+    )
