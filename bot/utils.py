@@ -33,8 +33,7 @@ def parsemsg(line):
 
 def annotatemsg(msg):
     """
-    Depending on command type will add convenience key/value sets.
-
+    Depending on command type will add useful properties to msg object.
     """
 
     command = msg['command']
@@ -48,7 +47,6 @@ def annotatemsg(msg):
         msg.update({
             'nick'  : nick,
             'chan'  : chan,
-            'parts' : parts,
             'cmd'   : parts[0],
             'terms' : ' '.join(parts[1:]).strip(),
         })
