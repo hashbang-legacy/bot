@@ -21,25 +21,54 @@ while True:
     if cmd not in ['!ud',]:
         continue
 
+    split_terms = terms.split(' ')
+
+    idx = 0
+
+    if split_terms and len(split_terms) > 1:
+        try:
+            idx = int(split_terms[-1])
+
+            split_terms.pop() # Don't want integer in call.
+
+        except ValueError:
+            pass
+
+    # Join multipe terms for API call.
+    terms = '+'.join(split_terms)
+
     result = json.loads(
         urllib.request.urlopen(API_URL.format(terms)).read().decode('utf-8')
     )
 
     defs = result.get('list', [])
+    amount = len(defs)
 
     outs = []
 
-    # Eventually allow grabbing n result.
+    if idx > amount - 1:
+        idx = amount - 1
+
     if defs:
-        definition = defs[0].get('definition', '')
-        example = defs[0].get('example', '')
+
+        max_length = 350
+
+        definition = defs[idx].get('definition', '')
+
+        if len(definition) > max_length:
+            definition = definition[:max_length] + '...'
+
+        example = defs[idx].get('example', '')
+
+        if len(example) > max_length:
+            example = example[:max_length] + '...'
 
         if definition:
             outs.append(
                 json.dumps({
                     "command": "message",
                     "channel": chan,
-                    "message": "{}: {}".format( nick, definition)
+                    "message": "{}: <Definition [{} of {}]>: {}".format(nick, idx + 1, amount, definition)
                 })
             )
 
@@ -48,7 +77,7 @@ while True:
                 json.dumps({
                     "command": "message",
                     "channel": chan,
-                    "message": "{}: {}".format( nick, example)
+                    "message": "{}: <Example>: {}".format(nick, example)
                 })
             )
 
@@ -57,7 +86,7 @@ while True:
             json.dumps({
                     "command": "message",
                     "channel": chan,
-                    "message": "{}: {}".format( nick, "No results found :(")
+                    "message": "{}: {}".format(nick, "No results found :(")
             })
         )
 
