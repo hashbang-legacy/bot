@@ -1,4 +1,5 @@
 """ Various IRC / Bot utility functions. """
+import re
 
 def parsemsg(line):
     """
@@ -120,7 +121,27 @@ def messageIterator(socket):
         log("Keyboard interrupt")
         return
 
-def colorize(text, fg='white', bg='black'):
+def colorize(format_string):
+    """
+    Colorize a message formatted with color markers.
+    Color markers take the form of 
+    {white} or {red} (see colorize_text for specifics).
+    """
+    parts = re.split("\{([^\}]*)\}", format_string)
+
+    colored_parts = [parts[0]]
+    
+    colors = parts[1::2]
+    strings= parts[2::2]
+
+    for (color, text) in zip(colors, strings):
+        colored_parts.append(
+                colorize_text(
+                    text, *color.split(",")[:2]))
+    
+    return "".join(colored_parts)
+
+def colorize_text(text, fg='white', bg='black'):
     """
     Human friendly k/v mapping of IRC colors.
 

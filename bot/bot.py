@@ -1,5 +1,5 @@
 from .plugins import ScriptStarterPlugin
-from .utils import log, parsemsg, connect, messageIterator
+from .utils import log, parsemsg, connect, messageIterator, colorize
 
 class Bot:
     def __init__(self, config):
@@ -83,6 +83,7 @@ class Bot:
         # Irc commands
         def privmsg(self, channel, message):
             """ Send a PRIVMSG to a channel (or nick) """
+            message = colorize(message)
             self.quote("PRIVMSG {} :{}", channel, message)
 
         def quote(self, line, *args):
