@@ -88,4 +88,4 @@ class Bot:
         def quote(self, line, *args):
             """ Send an arbitrary message to the server, this message
             can have optional formatting to it. """
-            self.__bot.send(line.format(*args))
+            self.__bot.send(line, *args)
