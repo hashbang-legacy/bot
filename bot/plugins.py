@@ -47,6 +47,7 @@ class ScriptPlugin:
         self.script = script
         self.running = False
         self.proc = None
+        self.timeout = 1
         self.lock = threading.RLock()
 
     def __call__(self, bot):
@@ -61,6 +62,14 @@ class ScriptPlugin:
         pipe stdout to a handler
         setup a stdin for handleMessage to write to.
         """
+
+        if self.proc:
+            log("script {} killing old instance.", self.script);
+            self.proc.stdin.close()
+            self.proc.stdout.close()
+            self.proc.stderr.close()
+            self.proc.wait()
+            log("script {} killed old instance.", self.script);
 
         executable = ["bash", "start.sh"]
         self.running = True
@@ -78,11 +87,11 @@ class ScriptPlugin:
             while self.running:
                 line = stream.readline().decode('utf-8').rstrip()
                 if not line:
-                    self.proc.poll() # Check if we're still alive.
-                    if self.proc is not None:
-                        self.die()
+                    self.checkAlive()
+                    if not self.running:
+                        return
 
-                callback(line)
+                    callback(line)
 
         def stdout(line):
             """ Lines from the plugins stdout go to this wrappers
@@ -94,7 +103,7 @@ class ScriptPlugin:
                     return
             except:
                 traceback.print_exc()
-            self.die()
+                loc("script {} had an exception while processing '{}'", this.script, line)
 
         def stderr(line):
             """ Stderr is just piped to the bots stdout"""
@@ -125,30 +134,43 @@ class ScriptPlugin:
             self.proc.stdin.write(json.dumps(message).encode('utf-8') + b"\n")
             self.proc.stdin.flush()
         except:
-            self.bot.privmsg("#test", "Plugin: {} has died.", self.script)
-            self.die()
+            self.bot.privmsg("#test", "script {} had a stdin exception", self.script)
+            self.checkAlive()
 
-    def die(self):
-        """ Kill the subprocess associated with this plugin """
+    def checkAlive(self):
+        """ Validate if the plugin is still alive, update self.running.
+        If the process has exited with a non-zero exit code, reload the plugin.
+        """
         with self.lock:
             if not self.running:
-                #already dead.
                 return
+
+            self.proc.poll()
+            if self.proc.returncode is None:
+                return
+
             self.running = False
+            
 
-        log("script {} end ", self.script)
-
-        try:
-            self.proc.terminate()
-        except:
-            pass
-        self.bot.unload()
+        log("script {} exited with code {}", self.script, self.proc.returncode)
+        
+        if self.proc.returncode != 0:
+            log("script {} had an error exit code. Restarting in {}s", self.script, self.timeout)
+            #self.bot.load(ScriptPlugin(self.script))
+            threading.Timer(self.timeout, self.start).start()    
+        else:
+            self.bot.unload()
 
     def __del__(self):
         """ The bot calls this upon plugin removal
         python /should/ call this upon shutdown.
 
         Attempt to kill the process"""
-        self.die()
-
-
+        with self.lock:
+            if self.running:
+                self.proc.terminate()
+            self.proc.wait()
+            self.proc.stdin.close()
+            self.proc.stdout.close()
+            self.proc.stderr.close()
+            self.running = False
