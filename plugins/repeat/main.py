@@ -1,6 +1,6 @@
 import json
 while True:
-    event = json.loads(input())
+    event = json.loads(input())['message']
     if event["command"] != "PRIVMSG" or event["cmd"] != "!repeat":
         continue
 

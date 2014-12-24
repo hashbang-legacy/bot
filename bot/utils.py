@@ -27,7 +27,7 @@ def parsemsg(line):
        'prefix' : prefix,
        'command': command,
        'args'   : args,
-       'raw'    :  line
+       'raw'    : line
     }
 
     return annotatemsg(msg)
@@ -130,7 +130,7 @@ def colorize(format_string):
     parts = re.split("\{([^\}]*)\}", format_string)
 
     colored_parts = [parts[0]]
-    
+
     colors = parts[1::2]
     strings= parts[2::2]
 
@@ -138,7 +138,7 @@ def colorize(format_string):
         colored_parts.append(
                 colorize_text(
                     text, *color.split(",")[:2]))
-    
+
     return "".join(colored_parts)
 
 def colorize_text(text, fg='white', bg='black'):

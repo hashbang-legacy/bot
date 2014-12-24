@@ -4,7 +4,7 @@ import urllib.request
 DDG = "http://duckduckgo.com/?o=json&q={}"
 
 while True:
-    obj = json.loads(input())
+    obj = json.loads(input())['message']
 
     if obj['command'] != 'PRIVMSG':
         continue
