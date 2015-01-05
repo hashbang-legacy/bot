@@ -1,7 +1,0 @@
-{ "host": "localhost",
-  "port": 4445,
-  "nick": "[bot]",
-  "password": "hashbangbot:password",
-  "plugins": ["ddg", "repeat"],
-  "RecordNetData": "netLog"
-}

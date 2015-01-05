@@ -1,7 +1,7 @@
-{ "host": "irc.hashbang.sh",
+{ "host": "localhost",
   "port": 4445,
   "nick": "[bot]",
   "password": "hashbangbot:password",
-  "plugins": ["ddg", "urbandict"],
+  "plugins": ["ddg", "repeat"],
   "RecordNetData": "netLog"
 }
