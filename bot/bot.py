@@ -5,7 +5,6 @@ class Bot:
     def __init__(self, config):
         self.sock = connect(config)
         self.authenticate(config)
-        self.config = config
         self.plugins = {}
         self.toUnload = []
         self.toLoad = []
@@ -34,7 +33,7 @@ class Bot:
         """
         for message in messageIterator(self.sock):
             for uuid, plugin in self.plugins.items():
-                plugin.handleMessage(message, config=self.config)
+                plugin.handleMessage(message)
 
             while self.toLoad:
                 self.__loadPlugin(self.toLoad.pop())

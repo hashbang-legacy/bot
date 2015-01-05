@@ -8,7 +8,7 @@ import urllib.request
 API_URL = 'http://api.urbandictionary.com/v0/define?term={}'
 
 while True:
-    obj = json.loads(input())['message']
+    obj = json.loads(input())
 
     if obj['command'] != 'PRIVMSG':
         continue

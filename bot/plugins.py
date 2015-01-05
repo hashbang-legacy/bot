@@ -11,7 +11,7 @@ class PingPlugin:
     def __init__(self, bot):
         self.bot = bot
 
-    def handleMessage(self, message, config={}):
+    def handleMessage(self, message):
         """ Send a PONG response to each PING command."""
         if message['command'] == 'PING':
             self.bot.quote("PONG {}", message['args'][0])
@@ -31,7 +31,7 @@ class ScriptStarterPlugin:
         self.bot = bot
         return self
 
-    def handleMessage(self, message, config={}):
+    def handleMessage(self, message):
         if message['command'] == 'PRIVMSG':
             for plugin in self.plugins:
                 self.bot.loadPlugin(ScriptPlugin(plugin))
@@ -128,15 +128,10 @@ class ScriptPlugin:
         func(*map(message.get, args))
 
 
-    def handleMessage(self, message, config={}):
+    def handleMessage(self, message):
         """ Send a message (dict) to the plugin process. """
         try:
-            obj = {
-                'message': message,
-                'config': config
-            }
-
-            self.proc.stdin.write(json.dumps(obj).encode('utf-8') + b"\n")
+            self.proc.stdin.write(json.dumps(message).encode('utf-8') + b"\n")
             self.proc.stdin.flush()
         except:
             self.bot.privmsg("#test", "script {} had a stdin exception", self.script)

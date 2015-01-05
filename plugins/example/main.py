@@ -4,7 +4,7 @@ nocolor = "\0030"
 kv_str = "\"\0033{}\0030\":{}"
 
 while True:
-    message = json.loads(input())['message']
+    message = json.loads(input())
 
     if message['command'] == 'PING':
         # Pings are noisy, skip them
