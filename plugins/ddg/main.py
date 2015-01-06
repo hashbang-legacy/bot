@@ -3,28 +3,24 @@ import urllib.request
 
 DDG = "http://duckduckgo.com/?o=json&q={}"
 
-while True:
-    obj = json.loads(input())
+# Read a json object from stdin
+obj = json.loads(input())
 
-    if obj['command'] != 'PRIVMSG':
-        continue
+# Check that it's !gs or !ddg
+if obj.get('cmd', '') in ['!gs', '!ddg']: 
+    
+    # Read the search results
+    url = DDG.format(obj['terms'])
+    response = urllib.request.urlopen(url).read().decode('utf-8')
+    result = json.loads(response)["AbstractURL"]
 
+    # Send the response
     nick = obj['nick']
     chan = obj['chan']
-    cmd =  obj['cmd']
-    terms = obj['terms']
-
-    if cmd not in ['!gs', '!ddg']:
-        continue
-
-    result = json.loads(
-        urllib.request.urlopen(DDG.format(terms)).read().decode('utf-8')
-    )
-
     print(json.dumps({
         "command": "message",
         "channel": chan,
-        "message": "{}: {}".format( nick, result["AbstractURL"])
+        "message": "{}: {}".format(nick, result)
     }))
 
-
+# exit normally
