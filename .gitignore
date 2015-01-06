@@ -2,3 +2,5 @@
 __pycache__
 *.json
 *.swp
+config.json
+config.py

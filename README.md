@@ -23,9 +23,11 @@ Irc bot
 
 ### Using the bot
 
-Firstly, edit the [config.json](https://github.com/hashbang/bot/blob/master/config.json) to your liking.
+Run `make` (or `python main.py`). This will start the bot and you're now up and running.
 
-Next, run `make` (or `python main.py`). This will start the bot and you're now up and running.
+If this is the first time run a config file will be created as `config.json`
+
+Edit this to your liking and re-run.
 
 ---
 

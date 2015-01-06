@@ -159,7 +159,7 @@ class ScriptPlugin:
                 return
 
             self.running = False
-            
+
 
         log("script {} checkAlive: Exited({})", self.script, self.proc.returncode)
         
