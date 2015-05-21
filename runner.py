@@ -1,23 +1,33 @@
 from threading import Thread
+import select
 from multiprocessing import Pipe, Queue
 import multiprocessing
-class Process:
-  def __init__(self, name, target, *args):
-    self.running = False
-    self.local, self.remote = Pipe()
-    self.name = name
-    self.args = (self.remote,) + args
-    self.target = target
-    self.start()
 
-  def getPipe(self):
-    return self.local
+class Plugin:
+  def __init__(self, name, onMessage):
+    self.running = False
+    self.local_pipe, self.remote_pipe = Pipe()
+    self.name = name
+    self.onMessage = onMessage
+    self.start()
 
   def start(self):
     assert not self.running, "Already running."
     self.running = True
     self.thread = Thread(target=self.run)
     self.thread.start()
+    Thread(target=self.reader).start()
+
+  def reader(self):
+    while self.running:
+      print("Checking for plugin output")
+      r, _, _ = select.select([self.local_pipe],[],[],.5)
+      print(r)
+      if r:
+        print("Available!")
+        got = self.local_pipe.recv()
+        print("Read:", got)
+        self.onMessage(got)
 
   def restart(self):
     self.proc.terminate()
@@ -25,19 +35,26 @@ class Process:
   def stop(self):
     assert self.running, "Running"
     self.running = False
-    self.proc.terminate()
-    self.thread.join()
     self.remote_pipe.close()
     self.local_pipe.close()
+    self.proc.terminate()
+    self.thread.join()
 
   def run(self):
     while self.running:
       print("Staring %s" % self.name)
       self.proc = multiprocessing.Process(
-          target=self.target, args=self.args)
+          target=__pluginLauncher__,
+          args=(self.remote_pipe, self.name))
       self.proc.start()
       self.proc.join()
       print("Exited %s" % self.name)
+
+  def send(self, line):
+    self.local_pipe.send(line)
+
+
+
 
 def __pluginLauncher__(pipe, pluginName):
   import api
@@ -77,10 +94,26 @@ class Bot:
     Thread(target=self.pluginReader, args=(pipe,)).start()
 
 if __name__=="__main__":
-  b = Bot()
-  b.startPlugin("repeat")
-  try:
-    b.loop()
-  except KeyboardInterrupt:
-    print("Keyboard interrupt. abandon ship")
-    exit(0)
+  def handler(line):
+    print(line)
+  p = Plugin("db_example", handler)
+  import time
+  time.sleep(2)
+  p.send(":nick!user@host PRIVMSG #chan :!loads")
+  time.sleep(1)
+  p.restart()
+  time.sleep(1)
+  p.send(":nick!user@host PRIVMSG #chan :!loads")
+  time.sleep(1)
+  p.stop()
+  time.sleep(1)
+  #  p.send(":nick!user@host PRIVMSG #chan :!loads")
+  #  time.sleep(1)
+
+  #b = Bot()
+  #b.startPlugin("repeat")
+  #try:
+  #  b.loop()
+  #except KeyboardInterrupt:
+  #  print("Keyboard interrupt. abandon ship")
+  #  exit(0)
