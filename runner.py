@@ -57,6 +57,9 @@ class Plugin:
 
 
 def __pluginLauncher__(pipe, pluginName):
+  import setproctitle
+  setproctitle.setproctitle("plugin_" + pluginName)
+
   import api
   module = __import__("plugins." + pluginName)
   api.register("sendline", pipe.send)
@@ -102,6 +105,11 @@ if __name__=="__main__":
   p.send(":nick!user@host PRIVMSG #chan :!loads")
   time.sleep(1)
   p.restart()
+  time.sleep(1)
+  p.send(":nick!user@host PRIVMSG #chan :!loads")
+  time.sleep(1)
+  import os
+  os.system("killall plugin_db_example")
   time.sleep(1)
   p.send(":nick!user@host PRIVMSG #chan :!loads")
   time.sleep(1)
